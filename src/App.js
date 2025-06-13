@@ -13,12 +13,24 @@ function App() {
     meat: '',
     sauces: ''
   });
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!endpoint) {
+      setError('API endpoint is not set.');
+      return;
+    }
+
     fetch(endpoint)
       .then(res => res.json())
-      .then(setSandwiches)
-      .catch(console.error);
+      .then(data => {
+        setSandwiches(data);
+        setError('');
+      })
+      .catch(err => {
+        console.error(err);
+        setError('Failed to fetch sandwiches.');
+      });
   }, []);
 
   const handleChange = (e) => {
@@ -28,26 +40,34 @@ function App() {
   const handleSubmit = async () => {
     const data = {
       ...form,
-      veggies: form.veggies.split(',').map(v => v.trim()),
-      cheese: form.cheese.split(',').map(c => c.trim()),
-      meat: form.meat.split(',').map(m => m.trim()),
-      sauces: form.sauces.split(',').map(s => s.trim())
+      veggies: form.veggies.split(',').map(v => v.trim()).filter(Boolean),
+      cheese: form.cheese.split(',').map(c => c.trim()).filter(Boolean),
+      meat: form.meat.split(',').map(m => m.trim()).filter(Boolean),
+      sauces: form.sauces.split(',').map(s => s.trim()).filter(Boolean)
     };
 
-    await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+    try {
+      await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
 
-    const res = await fetch(endpoint);
-    const updated = await res.json();
-    setSandwiches(updated);
+      const res = await fetch(endpoint);
+      const updated = await res.json();
+      setSandwiches(updated);
+      setError('');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to save sandwich.');
+    }
   };
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
       <h2>Create Your Sandwich</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+
       <input placeholder="Order ID" name="sandwichId" onChange={handleChange} /><br /><br />
       <input placeholder="Your Name" name="name" onChange={handleChange} /><br /><br />
       <input placeholder="Bread" name="bread" onChange={handleChange} /><br /><br />
