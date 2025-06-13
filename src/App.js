@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 
 const endpoint = process.env.REACT_APP_API_ENDPOINT;
@@ -32,7 +33,12 @@ function App() {
       const res = await fetch(endpoint);
       const data = await res.json();
       console.log("Fetched sandwiches:", data);
-      setSandwiches(data);
+      if (Array.isArray(data)) {
+        setSandwiches(data);
+      } else {
+        console.warn("API did not return an array:", data);
+        setSandwiches([]);
+      }
     } catch (err) {
       console.error("Fetch error:", err);
       setError("No sandwiches found or API error");
@@ -42,7 +48,7 @@ function App() {
   const handleChange = (category, value, isMulti = false) => {
     setForm(prev => {
       if (isMulti) {
-        const existing = prev[category] || [];
+        const existing = Array.isArray(prev[category]) ? prev[category] : [];
         return {
           ...prev,
           [category]: existing.includes(value)
@@ -102,11 +108,11 @@ function App() {
       {['veggies', 'meat', 'cheese', 'sauces'].map(cat => (
         <div key={cat}>
           <h3>{cat[0].toUpperCase() + cat.slice(1)}</h3>
-          {ingredientsList[cat].map(i => (
+          {(ingredientsList[cat] || []).map(i => (
             <label key={i} style={{ display: 'block' }}>
               <input
                 type="checkbox"
-                checked={form[cat].includes(i)}
+                checked={Array.isArray(form[cat]) && form[cat].includes(i)}
                 onChange={() => handleChange(cat, i, true)}
               />
               {i}
@@ -119,9 +125,9 @@ function App() {
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
       <h2>Saved Sandwiches</h2>
-      {sandwiches.length === 0 ? <p>No sandwiches found.</p> : (
+      {Array.isArray(sandwiches) && sandwiches.length === 0 ? <p>No sandwiches found.</p> : (
         <ul>
-          {sandwiches.map((s, i) => (
+          {Array.isArray(sandwiches) && sandwiches.map((s, i) => (
             <li key={i}>
               <strong>{s.name}</strong> ({s.sandwichId}) - {s.bread}
             </li>
