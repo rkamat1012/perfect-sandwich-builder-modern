@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_ENDPOINT = "https://pozux9cqx3.execute-api.us-east-1.amazonaws.com/prod/sandwich";
+const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT;
 
 const ingredientsList = {
   bread: ['White', 'Wheat', 'Multigrain', 'Rye', 'Sourdough'],
