@@ -78,18 +78,22 @@ function App() {
       <button onClick={handleSubmit}>Save Sandwich</button>
 
       <h3>Saved Sandwiches</h3>
-      <ul>
-        {sandwiches.map((s, i) => (
-          <li key={i} style={{ marginBottom: '1rem' }}>
-            <strong>{s.name}</strong> (ID: {s.sandwichId})<br />
-            Bread: {s.bread}<br />
-            Veggies: {s.veggies?.join(', ')}<br />
-            Cheese: {s.cheese?.join(', ')}<br />
-            Meat: {s.meat?.join(', ')}<br />
-            Sauces: {s.sauces?.join(', ')}
-          </li>
-        ))}
-      </ul>
+      {Array.isArray(sandwiches) ? (
+        <ul>
+          {sandwiches.map((s, i) => (
+            <li key={i} style={{ marginBottom: '1rem' }}>
+              <strong>{s.name}</strong> (ID: {s.sandwichId})<br />
+              Bread: {s.bread}<br />
+              Veggies: {s.veggies?.join(', ')}<br />
+              Cheese: {s.cheese?.join(', ')}<br />
+              Meat: {s.meat?.join(', ')}<br />
+              Sauces: {s.sauces?.join(', ')}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No sandwiches found or API error.</p>
+      )}
     </div>
   );
 }
