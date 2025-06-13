@@ -1,6 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 
 const endpoint = process.env.REACT_APP_API_ENDPOINT;
+
+const ingredientOptions = {
+  bread: ['White', 'Wheat', 'Rye', 'Sour dough', 'Honey Wheat'],
+  veggies: ['Lettuce', 'Tomato', 'Pickles', 'Olives', 'Banana Peppers', 'Jalapenos', 'Spinach', 'Cucumber', 'Avacado'],
+  meat: ['Turkey', 'Ham', 'Roast Beef', 'Chicken', 'Egg', 'Brisket'],
+  cheese: ['Swiss', 'Cheddar', 'Pepper Jack', 'American'],
+  sauces: ['Mayo', 'Mustard', 'Honey Mustard', 'Chipotle', 'Long Island']
+};
 
 function App() {
   const [sandwiches, setSandwiches] = useState([]);
@@ -8,10 +17,10 @@ function App() {
     sandwichId: '',
     name: '',
     bread: '',
-    veggies: '',
-    cheese: '',
-    meat: '',
-    sauces: ''
+    veggies: [],
+    cheese: [],
+    meat: [],
+    sauces: []
   });
   const [error, setError] = useState('');
 
@@ -33,24 +42,30 @@ function App() {
       });
   }, []);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckboxChange = (e, category) => {
+    const { value, checked } = e.target;
+    setForm(prev => {
+      const current = new Set(prev[category]);
+      if (checked) {
+        current.add(value);
+      } else {
+        current.delete(value);
+      }
+      return { ...prev, [category]: Array.from(current) };
+    });
   };
 
   const handleSubmit = async () => {
-    const data = {
-      ...form,
-      veggies: form.veggies.split(',').map(v => v.trim()).filter(Boolean),
-      cheese: form.cheese.split(',').map(c => c.trim()).filter(Boolean),
-      meat: form.meat.split(',').map(m => m.trim()).filter(Boolean),
-      sauces: form.sauces.split(',').map(s => s.trim()).filter(Boolean)
-    };
-
     try {
       await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(form)
       });
 
       const res = await fetch(endpoint);
@@ -68,13 +83,34 @@ function App() {
       <h2>Create Your Sandwich</h2>
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      <input placeholder="Order ID" name="sandwichId" onChange={handleChange} /><br /><br />
-      <input placeholder="Your Name" name="name" onChange={handleChange} /><br /><br />
-      <input placeholder="Bread" name="bread" onChange={handleChange} /><br /><br />
-      <input placeholder="Veggies (comma-separated)" name="veggies" onChange={handleChange} /><br /><br />
-      <input placeholder="Cheese (comma-separated)" name="cheese" onChange={handleChange} /><br /><br />
-      <input placeholder="Meat (comma-separated)" name="meat" onChange={handleChange} /><br /><br />
-      <input placeholder="Sauces (comma-separated)" name="sauces" onChange={handleChange} /><br /><br />
+      <input placeholder="Order ID" name="sandwichId" onChange={handleInputChange} /><br /><br />
+      <input placeholder="Your Name" name="name" onChange={handleInputChange} /><br /><br />
+
+      <label>Bread:</label><br />
+      <select name="bread" onChange={handleInputChange}>
+        <option value="">--Select Bread--</option>
+        {ingredientOptions.bread.map((b, i) => (
+          <option key={i} value={b}>{b}</option>
+        ))}
+      </select><br /><br />
+
+      {['veggies', 'meat', 'cheese', 'sauces'].map(category => (
+        <div key={category}>
+          <label>{category.charAt(0).toUpperCase() + category.slice(1)}:</label><br />
+          {ingredientOptions[category].map((item, i) => (
+            <label key={i}>
+              <input
+                type="checkbox"
+                value={item}
+                checked={form[category].includes(item)}
+                onChange={(e) => handleCheckboxChange(e, category)}
+              /> {item}
+            </label>
+          ))}
+          <br /><br />
+        </div>
+      ))}
+
       <button onClick={handleSubmit}>Save Sandwich</button>
 
       <h3>Saved Sandwiches</h3>
