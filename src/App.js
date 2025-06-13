@@ -1,9 +1,8 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const endpoint = process.env.REACT_APP_API_ENDPOINT;
 
-const ingredientOptions = {
+const ingredientsList = {
   bread: ['White', 'Wheat', 'Rye', 'Sour dough', 'Honey Wheat'],
   veggies: ['Lettuce', 'Tomato', 'Pickles', 'Olives', 'Banana Peppers', 'Jalapenos', 'Spinach', 'Cucumber', 'Avacado'],
   meat: ['Turkey', 'Ham', 'Roast Beef', 'Chicken', 'Egg', 'Brisket'],
@@ -12,123 +11,122 @@ const ingredientOptions = {
 };
 
 function App() {
-  const [sandwiches, setSandwiches] = useState([]);
   const [form, setForm] = useState({
     sandwichId: '',
     name: '',
     bread: '',
     veggies: [],
-    cheese: [],
     meat: [],
+    cheese: [],
     sauces: []
   });
+  const [sandwiches, setSandwiches] = useState([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!endpoint) {
-      setError('API endpoint is not set.');
-      return;
-    }
-
-    fetch(endpoint)
-      .then(res => res.json())
-      .then(data => {
-        setSandwiches(data);
-        setError('');
-      })
-      .catch(err => {
-        console.error(err);
-        setError('Failed to fetch sandwiches.');
-      });
+    fetchSandwiches();
   }, []);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+  const fetchSandwiches = async () => {
+    try {
+      const res = await fetch(endpoint);
+      const data = await res.json();
+      console.log("Fetched sandwiches:", data);
+      setSandwiches(data);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError("No sandwiches found or API error");
+    }
   };
 
-  const handleCheckboxChange = (e, category) => {
-    const { value, checked } = e.target;
+  const handleChange = (category, value, isMulti = false) => {
     setForm(prev => {
-      const current = new Set(prev[category]);
-      if (checked) {
-        current.add(value);
+      if (isMulti) {
+        const existing = prev[category] || [];
+        return {
+          ...prev,
+          [category]: existing.includes(value)
+            ? existing.filter(i => i !== value)
+            : [...existing, value]
+        };
       } else {
-        current.delete(value);
+        return { ...prev, [category]: value };
       }
-      return { ...prev, [category]: Array.from(current) };
     });
   };
 
   const handleSubmit = async () => {
+    console.log("Submitting sandwich:", form);
+    if (!form.sandwichId || !form.name || !form.bread) {
+      alert("Please enter Sandwich ID, Name, and Bread");
+      return;
+    }
+    if (!endpoint) {
+      console.error("API endpoint not configured.");
+      return;
+    }
+
     try {
-      await fetch(endpoint, {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       });
-
-      const res = await fetch(endpoint);
-      const updated = await res.json();
-      setSandwiches(updated);
-      setError('');
+      console.log("Save response:", await res.text());
+      fetchSandwiches();  // refresh list
     } catch (err) {
-      console.error(err);
-      setError('Failed to save sandwich.');
+      console.error("Error saving sandwich:", err);
+      setError("Failed to save sandwich");
     }
   };
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h2>Create Your Sandwich</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      <input placeholder="Order ID" name="sandwichId" onChange={handleInputChange} /><br /><br />
-      <input placeholder="Your Name" name="name" onChange={handleInputChange} /><br /><br />
-
-      <label>Bread:</label><br />
-      <select name="bread" onChange={handleInputChange}>
-        <option value="">--Select Bread--</option>
-        {ingredientOptions.bread.map((b, i) => (
-          <option key={i} value={b}>{b}</option>
+    <div style={{ padding: '2rem', fontFamily: 'Arial' }}>
+      <h1>Perfect Sandwich Builder</h1>
+      <input
+        placeholder="Sandwich ID"
+        value={form.sandwichId}
+        onChange={e => handleChange('sandwichId', e.target.value)}
+      />
+      <input
+        placeholder="Name"
+        value={form.name}
+        onChange={e => handleChange('name', e.target.value)}
+      />
+      <select onChange={e => handleChange('bread', e.target.value)} value={form.bread}>
+        <option value="">Select Bread</option>
+        {ingredientsList.bread.map(b => (
+          <option key={b} value={b}>{b}</option>
         ))}
-      </select><br /><br />
-
-      {['veggies', 'meat', 'cheese', 'sauces'].map(category => (
-        <div key={category}>
-          <label>{category.charAt(0).toUpperCase() + category.slice(1)}:</label><br />
-          {ingredientOptions[category].map((item, i) => (
-            <label key={i}>
+      </select>
+      {['veggies', 'meat', 'cheese', 'sauces'].map(cat => (
+        <div key={cat}>
+          <h3>{cat[0].toUpperCase() + cat.slice(1)}</h3>
+          {ingredientsList[cat].map(i => (
+            <label key={i} style={{ display: 'block' }}>
               <input
                 type="checkbox"
-                value={item}
-                checked={form[category].includes(item)}
-                onChange={(e) => handleCheckboxChange(e, category)}
-              /> {item}
+                checked={form[cat].includes(i)}
+                onChange={() => handleChange(cat, i, true)}
+              />
+              {i}
             </label>
           ))}
-          <br /><br />
         </div>
       ))}
-
       <button onClick={handleSubmit}>Save Sandwich</button>
 
-      <h3>Saved Sandwiches</h3>
-      {Array.isArray(sandwiches) ? (
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+
+      <h2>Saved Sandwiches</h2>
+      {sandwiches.length === 0 ? <p>No sandwiches found.</p> : (
         <ul>
           {sandwiches.map((s, i) => (
-            <li key={i} style={{ marginBottom: '1rem' }}>
-              <strong>{s.name}</strong> (ID: {s.sandwichId})<br />
-              Bread: {s.bread}<br />
-              Veggies: {s.veggies?.join(', ')}<br />
-              Cheese: {s.cheese?.join(', ')}<br />
-              Meat: {s.meat?.join(', ')}<br />
-              Sauces: {s.sauces?.join(', ')}
+            <li key={i}>
+              <strong>{s.name}</strong> ({s.sandwichId}) - {s.bread}
             </li>
           ))}
         </ul>
-      ) : (
-        <p>No sandwiches found or API error.</p>
       )}
     </div>
   );
